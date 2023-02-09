@@ -1,5 +1,9 @@
 // redux
-import {useSelector} from 'react-redux';
+import {useSelector, useDispatch} from 'react-redux';
+import { clearUseInfo, setIsLogin } from '../redux/loginSlice';
+
+// router
+import { useNavigate } from 'react-router-dom';
 
 // antd
 import { Button, Avatar, List, Popover, Image } from 'antd';
@@ -11,6 +15,10 @@ import { UserOutlined } from '@ant-design/icons';
 import styles from '../css/LoginAvatar.module.css';
 
 function LoginAvatar(props) {
+
+    const dispatch = useDispatch();
+
+    const navigate = useNavigate();
 
     // 从redux中获取是否登录
     const { isLogin, loginInfo } = useSelector(state => state.user);
@@ -28,6 +36,21 @@ function LoginAvatar(props) {
         },
     ]
 
+    function changeListItem(item) {
+        if(item.title === '个人中心') {
+            navigate('/personal');
+        } else if(item.title === '退出登录') {
+            // 清除本地保存的token
+            localStorage.removeItem('useToken');
+            // 清空用户信息
+            dispatch(clearUseInfo);
+            // 设置未登录
+            dispatch(setIsLogin(false));
+            // 跳转到首页
+            navigate('/');
+        }
+    }
+
 
     // 已登录
     if(isLogin) {
@@ -36,7 +59,10 @@ function LoginAvatar(props) {
             <List 
                 dataSource={items}
                 renderItem={(item) => (
-                    <List.Item>
+                    <List.Item
+                        onClick={() => changeListItem(item)}
+                        style={{cursor: 'pointer'}}
+                    >
                         {item.title}
                     </List.Item>
                 )}
@@ -54,7 +80,7 @@ function LoginAvatar(props) {
                         size="large"
                         style={{cursor: 'pointer'}}
                         icon={<UserOutlined />} 
-                        src={<Image src={loginInfo?.avatar}/>}
+                        src={<Image preview={false} src={loginInfo?.avatar}/>}
                     />
                 </Popover>
             </div>    

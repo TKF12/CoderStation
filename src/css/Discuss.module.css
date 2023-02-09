@@ -1,0 +1,43 @@
+.paginationContainer{
+    /* outline:1px solid; */
+    text-align:center;
+    margin: 40px 0;
+}
+
+.commentInput{
+    display: flex;
+}
+
+.comment-content{
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.commentSection{
+    margin-top: 35px;
+}
+
+.commentTitle{
+    border-bottom: 1px solid #f0f0f0;
+    padding: 12px 0px;
+}
+
+
+.comment-list-title{
+    color: rgb(102, 102, 102);
+    font-weight: normal;
+    font-size: 13px;
+}
+
+.ant-list-item-meta-avatar{
+    display: flex;
+    height: 58px;
+    align-items: center;
+}
+
+.comment-page{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

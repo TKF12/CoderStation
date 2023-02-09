@@ -1,11 +1,17 @@
 import {useState, useRef, useEffect} from 'react';
 
 // redux
-import { setIsLogin, initUseInfo } from '../redux/loginSlice';
+import { setIsLogin, initUseInfo, editUserAsync } from '../redux/loginSlice';
 import { useDispatch } from 'react-redux';
 
 // api
-import { getCaptchaApi, loginIdIsExistApi, registerApi } from '../api/userApi';
+import {
+    getCaptchaApi,
+    loginIdIsExistApi,
+    registerApi,
+    loginUseApi,
+    getIdUseApi
+} from '../api/userApi';
 
 // css
 import styles from '../css/LoginForm.module.css';
@@ -32,7 +38,7 @@ function LoginForm(props) {
     const dispatch = useDispatch();
 
     // 选项卡状态
-    const [value, changeValue] = useState(0);
+    const [tabsValue, setTabsValue] = useState(0);
     // 登录信息
     const [loginInfo, setLoginInfo] = useState({
         loginId: '',
@@ -53,7 +59,10 @@ function LoginForm(props) {
     useEffect(() => {
         // 获取验证码
         captchaClickHandle();
-    }, [value, props.isModalOpen]);
+        // 重置表单
+        resetForm();
+    }, [tabsValue, props.isModalOpen]);
+
 
     // 登录ref
     const loginFormRef = useRef();
@@ -64,8 +73,47 @@ function LoginForm(props) {
     let container = null;
 
     // 登录表单提交
-    function loginHandle() {
-        
+    async function loginHandle() {
+        const result = await loginUseApi(loginInfo);
+        // 有登录信息
+        if(result.data) {
+            // 账号或密码不正确
+            if(!result.data.data) {
+                message.warning('账号或密码不正确');
+                // 更新验证码
+                captchaClickHandle();
+            } else if(!result.data.data.enabled) {
+                // 账号被冻结
+                message.warning('账号被冻结，请联系管理员');
+                // 更新验证码
+                captchaClickHandle();
+            } else {
+                // 将token存储到本地
+                localStorage.setItem('useToken', result.data.token);
+                const use = await getIdUseApi(result.data.data._id);
+                message.success('登录成功');
+                // 将用户信息存储到redux
+                dispatch(initUseInfo(use.data));
+                // 设置已登录
+                dispatch(setIsLogin(true));
+                // 更新登录时间
+                dispatch(editUserAsync({
+                    userId: result.data.data._id,
+                    newData: {
+                        lastLoginDate: Date.now(),
+                    }
+                }));
+                // 重置表单
+                resetForm();
+                // 关闭登录弹窗
+                props.handleCancel();
+            }
+
+        } else {
+            // 验证码错误
+            message.warning(result.msg);
+            captchaClickHandle();
+        }
     }
 
     // 验证账号是否存在
@@ -96,25 +144,11 @@ function LoginForm(props) {
 
     // 切换验证码
     async function captchaClickHandle() {
+        // 获取验证码
         const res = await getCaptchaApi();
         setCaptcha(res);
     }
 
-    // 清空注册内容和登录内容，关闭登录弹窗
-    function handleCancel() {
-        setRegisterInfo({
-            loginId: '',
-            nickname: '',
-            captcha: '',
-        });
-        setLoginInfo({
-            loginId: '',
-            loginPwd: '',
-            captcha: '',
-            remember: false,
-        });
-        props.handleCancel();
-    }
 
     // 注册提交
     async function registerHandle() {
@@ -126,24 +160,56 @@ function LoginForm(props) {
             // 设置已登录
             dispatch(setIsLogin(true));
             message.success('注册成功，默认密码为123456', 5);
-            // 关闭弹窗
-            handleCancel();
+            // 关闭注册弹窗
+            props.handleCancel();
         } else {
             // 提示错误信息
             message.error(res.msg);
             captchaClickHandle();
         }
     }
+    
+    // 切换登录/注册
+    function changeRadio(val) {
+        setTabsValue(val);
+        // 重置输入框
+        resetForm();
+    }
+
+    // 重置表单
+    function resetForm() {
+        if(tabsValue === 0) {
+            // 重置登录输入框
+            loginFormRef.current?.resetFields();
+            // 重置state
+            setLoginInfo({
+                loginId: '',
+                loginPwd: '',
+                captcha: '',
+                remember: false
+            });
+        } else {
+            // 重置注册输入框
+            registerFormRef.current?.resetFields();
+            // 重置state
+            setRegisterInfo({
+                loginId: '',
+                nickname: '',
+                captcha: '',
+            });
+        }
+        
+    }
 
     // 渲染登录
-    if(value === 0) {
+    if(tabsValue === 0) {
         container = (
             <div className={styles.container}>
                 <Form
                     name="basic1"
-                    autoComplete="off"
                     onFinish={loginHandle}
                     ref={loginFormRef}
+                    key={tabsValue}
                 >
                     <Form.Item
                         label="登录账号"
@@ -233,7 +299,7 @@ function LoginForm(props) {
                         >
                             登录
                         </Button>
-                        <Button type="primary" htmlType="submit">
+                        <Button type="primary" onClick={resetForm}>
                             重置
                         </Button>
                     </Form.Item>
@@ -244,8 +310,8 @@ function LoginForm(props) {
         container = (
             <div className={styles.container}>
                 <Form
+                    key={tabsValue}
                     name="basic2"
-                    autoComplete="off"
                     ref={registerFormRef}
                     onFinish={registerHandle}
                 >
@@ -321,7 +387,7 @@ function LoginForm(props) {
                         >
                             注册
                         </Button>
-                        <Button type="primary" htmlType="submit">
+                        <Button type="primary" onClick={resetForm}>
                             重置
                         </Button>
                     </Form.Item>
@@ -330,32 +396,22 @@ function LoginForm(props) {
         );
     }
 
-
-    // 确认
-    function handleOk() {
-        console.log('querding');
-    }
-
-    // 切换登录/注册
-    function changeRadio(val) {
-        changeValue(val);
-    }
-
     return (
-        <div>
+        <>
             <Modal
                 title="登录/注册"
                 open={props.isModalOpen}
                 onCancel={props.handleCancel}
-                onOk={handleOk}
+                footer={false}
+                destroyOnClose
             >
                 {/* 选项卡 */}
                 <Segmented
-                    value={value}
+                    value={tabsValue}
                     className={styles.radioGroup}
                     options={[
                         {label: '登录', value: 0, icon: <UserOutlined />},
-                        {label: '注册', value: 1, icon: <UserAddOutlined />}
+                        {label: '注册', value: 1, icon: <UserAddOutlined />},
                     ]}
                     size="large"
                     onChange={changeRadio}
@@ -363,7 +419,7 @@ function LoginForm(props) {
                 {/* 表单 */}
                 {container}
             </Modal>
-        </div>
+        </>
     );
 }
 

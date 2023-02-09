@@ -1,0 +1,17 @@
+.book-item-container{
+    width: 200px !important;
+    margin-bottom: 30px;
+}
+
+.book-img{
+    width: 160px !important;
+    height: 200px;
+    margin: 10px auto auto;
+}
+
+.book-item-info{
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-weight: 200;
+}

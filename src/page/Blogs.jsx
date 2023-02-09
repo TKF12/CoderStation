@@ -3,7 +3,7 @@ import React from 'react';
 function Blogs(props) {
     return (
         <div>
-           专栏 
+           待开发 
         </div>
     );
 }

@@ -12,13 +12,18 @@ import store from './redux/store';
 import { BrowserRouter } from 'react-router-dom';
 
 // antd组件
-import { ConfigProvider } from 'antd';
+import { ConfigProvider,message } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import 'antd/dist/reset.css';
 
 
 // 全局css样式
 import './index.css';
+
+// 配置提示框
+message.config({
+  top: 80,
+})
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
